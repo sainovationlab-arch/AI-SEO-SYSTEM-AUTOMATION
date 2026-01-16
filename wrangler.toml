@@ -1,0 +1,13 @@
+name = "ai-visibility-sales-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Bindings (KV, D1, etc.) can be added here
+# [vars]
+# DATABASE_URL = "..."
+
+# For D1 Database
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "ai-sales-db"
+# database_id = "..."

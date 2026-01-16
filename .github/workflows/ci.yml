@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+
+    # Install dependencies for shared-utils
+    - name: Install Shared Utils Dependencies
+      working-directory: ./shared-utils
+      run: npm install
+
+    # Install dependencies for System 2 (Sales)
+    - name: Install Sales System Dependencies
+      working-directory: ./system-2-sales
+      run: npm install
+
+    # Linting (Example - adjust command as needed)
+    # - name: Lint
+    #   working-directory: ./system-2-sales
+    #   run: npm run lint
+
+    # Testing (Example - adjust command as needed)
+    # - name: Test
+    #   working-directory: ./system-2-sales
+    #   run: npm test

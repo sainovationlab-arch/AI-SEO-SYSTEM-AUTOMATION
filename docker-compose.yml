@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  sales-backend:
+    build:
+      context: ./system-2-sales
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgres://user:password@db:5432/ai_sales_db
+      - NODE_ENV=development
+    depends_on:
+      - db
+    volumes:
+      - ./system-2-sales:/app
+      - /app/node_modules
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ai_sales_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./system-2-sales/src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  postgres_data:
