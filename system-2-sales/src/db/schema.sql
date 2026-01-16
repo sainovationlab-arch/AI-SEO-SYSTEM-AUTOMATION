@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS invoices (
     lead_id TEXT REFERENCES leads(id),
     service_type TEXT NOT NULL, -- 'SEO', 'GEO', 'AEO'
     total_amount REAL NOT NULL,
-    advance_amount REAL, -- 30%
-    balance_amount REAL, -- 70%
-    status TEXT DEFAULT 'created', -- 'created', 'advance_paid', 'in_progress', 'proof_submitted', 'fully_paid', 'closed'
+    advance_amount REAL,
+    balance_amount REAL,
+    status TEXT DEFAULT 'created',
     due_date INTEGER,
     created_at INTEGER DEFAULT (unixepoch()),
     updated_at INTEGER DEFAULT (unixepoch())
@@ -51,10 +51,11 @@ CREATE TABLE IF NOT EXISTS payment_proofs (
     created_at INTEGER DEFAULT (unixepoch())
 );
 
--- Execution Jobs Table (For tracking started jobs)
+-- Execution Jobs Table
 CREATE TABLE IF NOT EXISTS execution_jobs (
     id TEXT PRIMARY KEY,
     invoice_id TEXT REFERENCES invoices(id),
+    engine_type TEXT NOT NULL, -- 'SEO', 'GEO', 'AEO'
     status TEXT DEFAULT 'queued', -- 'queued', 'running', 'completed', 'failed'
     started_at INTEGER,
     completed_at INTEGER,
@@ -62,9 +63,31 @@ CREATE TABLE IF NOT EXISTS execution_jobs (
     created_at INTEGER DEFAULT (unixepoch())
 );
 
+-- Job Proofs (Immutable Proof of Work)
+CREATE TABLE IF NOT EXISTS job_proofs (
+    id TEXT PRIMARY KEY,
+    job_id TEXT REFERENCES execution_jobs(id),
+    invoice_id TEXT REFERENCES invoices(id),
+    engine_type TEXT NOT NULL,
+    timestamp INTEGER DEFAULT (unixepoch()),
+    proof_data TEXT, -- JSON string containing before/after state
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
+-- Execution Artifacts (Generated Content/Data)
+CREATE TABLE IF NOT EXISTS execution_artifacts (
+    id TEXT PRIMARY KEY,
+    job_id TEXT REFERENCES execution_jobs(id),
+    artifact_type TEXT, -- 'sitemap', 'content_block', 'entity_graph'
+    content TEXT, -- JSON or Text content
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_leads_user_id ON leads(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_lead_id ON invoices(lead_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_payment_proofs_invoice_id ON payment_proofs(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_execution_jobs_invoice_id ON execution_jobs(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_job_proofs_invoice_id ON job_proofs(invoice_id);
