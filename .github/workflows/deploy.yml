@@ -18,4 +18,26 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: 'system-2-sales'
+          command: deploy
+
+      # Apply Schema
+      # (Ideally we run this, but for now we skip to avoid errors if D1 not created)
+      # - run: npx wrangler d1 execute DB --file=src/db/schema.sql --remote
+
+      - name: Build Frontend
+        working-directory: 'frontend-dashboard'
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@1.5.0
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          projectName: 'ai-seo-dashboard' # Needs to match user's CF Pages project name or create new
+          directory: 'frontend-dashboard/dist'
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+
  

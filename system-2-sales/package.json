@@ -1,0 +1,17 @@
+{
+  "name": "ai-visibility-sales-api",
+  "version": "1.0.0",
+  "description": "Sales System Backend on Cloudflare Workers",
+  "main": "src/worker.js",
+  "scripts": {
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^3.12.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.22.0"
+  },
+  "private": true
+}

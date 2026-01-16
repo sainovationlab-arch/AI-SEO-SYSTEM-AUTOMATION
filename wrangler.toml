@@ -1,13 +1,24 @@
 name = "ai-visibility-sales-api"
-main = "src/index.js"
+main = "src/worker.js"
 compatibility_date = "2024-01-01"
 
-# Bindings (KV, D1, etc.) can be added here
-# [vars]
-# DATABASE_URL = "..."
+[vars]
+ENVIRONMENT = "production"
 
-# For D1 Database
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "ai-sales-db"
-# database_id = "..."
+# D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-sales-db"
+database_id = "e6e00000-0000-0000-0000-000000000000" # Placeholder, will be overridden or needs to be set in GH Secrets usually, but for local dev this is fine.
+
+# KV Namespace Bindings
+[[kv_namespaces]]
+binding = "JOBS_KV"
+id = "xxxxxxxxxxxxxxxxx" # Placeholder
+
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "xxxxxxxxxxxxxxxxx" # Placeholder
+
+[build]
+command = "npm install && npm run build" # Optional if using custom build, but standard worker is fine.

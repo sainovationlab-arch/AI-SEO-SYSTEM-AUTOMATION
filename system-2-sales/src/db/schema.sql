@@ -1,58 +1,57 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- D1 / SQLite Schema
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100),
-    role VARCHAR(50) DEFAULT 'user', -- 'admin', 'sales_agent', 'user'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY, -- UUID stored as TEXT
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    full_name TEXT,
+    role TEXT DEFAULT 'user',
+    created_at INTEGER DEFAULT (unixepoch()),
+    updated_at INTEGER DEFAULT (unixepoch())
 );
 
 -- Leads Table
 CREATE TABLE IF NOT EXISTS leads (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id),
-    business_name VARCHAR(255) NOT NULL,
-    contact_name VARCHAR(100),
-    email VARCHAR(255),
-    phone VARCHAR(50),
-    status VARCHAR(50) DEFAULT 'new', -- 'new', 'contacted', 'qualified', 'converted', 'lost'
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id),
+    business_name TEXT NOT NULL,
+    contact_name TEXT,
+    email TEXT,
+    phone TEXT,
+    status TEXT DEFAULT 'new',
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at INTEGER DEFAULT (unixepoch()),
+    updated_at INTEGER DEFAULT (unixepoch())
 );
 
 -- Invoices Table
 CREATE TABLE IF NOT EXISTS invoices (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    lead_id UUID REFERENCES leads(id),
-    amount DECIMAL(10, 2) NOT NULL,
-    advance_amount DECIMAL(10, 2), -- 30% of total usually
-    remaining_amount DECIMAL(10, 2),
-    status VARCHAR(50) DEFAULT 'pending_advance', -- 'pending_advance', 'advance_paid', 'work_completed', 'fully_paid'
-    due_date DATE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    lead_id TEXT REFERENCES leads(id),
+    amount REAL NOT NULL,
+    advance_amount REAL,
+    remaining_amount REAL,
+    status TEXT DEFAULT 'pending_advance',
+    due_date INTEGER, -- Storage as unix timestamp or ISO string usually, integer is easy for sorting
+    created_at INTEGER DEFAULT (unixepoch()),
+    updated_at INTEGER DEFAULT (unixepoch())
 );
 
 -- Payment Proofs Table
 CREATE TABLE IF NOT EXISTS payment_proofs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    invoice_id UUID REFERENCES invoices(id),
-    file_path VARCHAR(512) NOT NULL,
-    uploaded_by UUID REFERENCES users(id), -- Who uploaded the proof (could be customer or admin)
-    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'verified', 'rejected'
-    verified_at TIMESTAMP WITH TIME ZONE,
-    verified_by UUID REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    invoice_id TEXT REFERENCES invoices(id),
+    file_path TEXT NOT NULL,
+    uploaded_by TEXT REFERENCES users(id),
+    status TEXT DEFAULT 'pending',
+    verified_at INTEGER,
+    verified_by TEXT REFERENCES users(id),
+    created_at INTEGER DEFAULT (unixepoch())
 );
 
--- Create indexes for performance
-CREATE INDEX idx_leads_user_id ON leads(user_id);
-CREATE INDEX idx_invoices_lead_id ON invoices(lead_id);
-CREATE INDEX idx_invoices_status ON invoices(status);
-CREATE INDEX idx_payment_proofs_invoice_id ON payment_proofs(invoice_id);
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_leads_user_id ON leads(user_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_lead_id ON invoices(lead_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_payment_proofs_invoice_id ON payment_proofs(invoice_id);
