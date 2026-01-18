@@ -1,21 +1,28 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { processJob } from './engines/orchestrator.js';
+import { authRoutes, authMiddleware, roleGuard } from './auth.js';
 
 const app = new Hono();
 
+// Global CORS - Allow all for now (or restrict to frontend URL in prod)
 app.use('/*', cors());
 
 // --- Helpers ---
 const success = (c, data, status = 200) => c.json({ success: true, data }, status);
 const error = (c, message, status = 400) => c.json({ success: false, error: message }, status);
 
-// --- Health ---
+// --- Public Routes ---
 app.get('/api/health', (c) => success(c, { status: 'ok', system: 'Cloudflare Worker' }));
 
-// --- Invoices endpoints (Keep from Phase 2) ---
-// (Re-declaring purely for file content completeness in this replace, in reality I'd append or merge)
-// For safety, I will include the previous logic + new endpoints.
+// Auth Routes (Login)
+authRoutes(app);
+
+// --- Middleware: Protect all /api/invoices and /api/jobs routes ---
+app.use('/api/invoices/*', authMiddleware);
+app.use('/api/jobs/*', authMiddleware);
+
+// --- Invoices endpoints ---
 
 // 1. Create Invoice
 app.post('/api/invoices/create', async (c) => {
@@ -33,17 +40,20 @@ app.post('/api/invoices/create', async (c) => {
     } catch (e) { return error(c, e.message, 500); }
 });
 
-app.get('/api/invoices', async (c) => {
+// List All Invoices - ADMIN ONLY
+app.get('/api/invoices', roleGuard('admin'), async (c) => {
     const { results } = await c.env.DB.prepare('SELECT * FROM invoices ORDER BY created_at DESC').all();
     return success(c, results);
 });
 
-app.post('/api/invoices/:id/advance-paid', async (c) => {
+// Update Invoice Status - ADMIN ONLY (for manual overrides/checks)
+app.post('/api/invoices/:id/advance-paid', roleGuard('admin'), async (c) => {
     const id = c.req.param('id');
     await c.env.DB.prepare("UPDATE invoices SET status = 'advance_paid', updated_at = unixepoch() WHERE id = ?").bind(id).run();
     return success(c, { id, status: 'advance_paid' });
 });
 
+// Submit Proof - Authenticated (Client or Admin)
 app.post('/api/invoices/:id/submit-proof', async (c) => {
     const id = c.req.param('id');
     const { file_path } = await c.req.json();
@@ -51,16 +61,16 @@ app.post('/api/invoices/:id/submit-proof', async (c) => {
     return success(c, { id, status: 'proof_submitted' });
 });
 
-app.post('/api/invoices/:id/final-paid', async (c) => {
+app.post('/api/invoices/:id/final-paid', roleGuard('admin'), async (c) => {
     const id = c.req.param('id');
     await c.env.DB.prepare("UPDATE invoices SET status = 'fully_paid', updated_at = unixepoch() WHERE id = ?").bind(id).run();
     return success(c, { id, status: 'fully_paid' });
 });
 
 
-// --- JOBS & ORCHESTRATION (Phase 3) ---
+// --- JOBS & ORCHESTRATION ---
 
-// 5. Start Job (Updated to use Orchestrator)
+// 5. Start Job - Authenticated
 app.post('/api/jobs/start', async (c) => {
     const { invoice_id } = await c.req.json();
     if (!invoice_id) return error(c, 'Missing invoice_id');
